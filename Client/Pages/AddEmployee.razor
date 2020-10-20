@@ -1,0 +1,72 @@
+﻿@page "/addemployee"
+@using Microsoft.AspNetCore.SignalR.Client
+@using BlazorCRUDSingalR.Shared
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+<h3>Create Employee</h3>
+<hr />
+
+<form>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="form-group">
+                <label for="EmpName" class="control-label">Name</label>
+                <input form="EmpName" class="form-control" @bind="@emp.EmpName" />
+            </div>
+            <div class="form-group">
+				<label for="Designation" class="control-label">Designation</label>
+                <input form="Designation" class="form-control" @bind="@emp.Designation" />
+            </div>
+            <div class="form-group">
+				<label for="Department" class="control-label">Department</label>
+                <input form="Department" class="form-control" @bind="@emp.Department" />
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" class="btn btn-success" @onclick="@CreateEmployee" value="Save" />
+                <input type="button" class="btn btn-danger" @onclick="@Cancel" value="Cancel" />
+
+            </div>
+        </div>
+    </div>
+</form>
+
+@code {
+    EmployeeInfo emp = new EmployeeInfo();
+    private HubConnection hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+         .WithUrl(NavigationManager.ToAbsoluteUri("/EmployeeHub"))
+         .Build();
+
+        await hubConnection.StartAsync();
+    }
+
+    public bool IsConnected =>
+        hubConnection.State == HubConnectionState.Connected;
+
+    public async Task CreateEmployee()
+    {
+        await Http.PostJsonAsync("api/EmployeeInfoes", emp);
+        if (IsConnected) await SendMessage();
+        NavigationManager.NavigateTo("employeeList");
+    }
+
+    Task SendMessage() => hubConnection.SendAsync("SendMessage");
+
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("employeeList");
+    }
+
+    public void Dispose()
+    {
+        _ = hubConnection.DisposeAsync();
+    }
+}

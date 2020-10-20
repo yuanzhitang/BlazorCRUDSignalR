@@ -1,0 +1,76 @@
+﻿@page "/deleteemployee/{id}"
+@using Microsoft.AspNetCore.SignalR.Client
+@using BlazorCRUDSingalR.Shared
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+<h3>Delete Employee</h3>
+<hr />
+<p>Are you sure want to delete this Employee</p>
+
+<br/>
+
+        <div class="col-md-4">
+            <table class="table">
+                <tr>
+                    <td>Name</td>
+                    <td>@emp.EmpName</td>
+                </tr>
+                <tr>
+                    <td>Designation</td>
+                    <td>@emp.Designation</td>
+                </tr>
+
+                <tr>
+                    <td>Department</td>
+                    <td>@emp.Department</td>
+                </tr>
+            </table>
+            <div class="form-group">
+                <input type="button" class="btn btn-danger" @onclick="@Delete" value="Delete" />
+                <input type="button" class="btn btn-primary" @onclick="@Cancel" value="Cancel" />
+
+            </div>
+        </div>
+
+@code {
+	EmployeeInfo emp = new EmployeeInfo();
+	private HubConnection hubConnection;
+
+
+	[Parameter]
+	public string id { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		emp = await Http.GetJsonAsync<EmployeeInfo>("api/EmployeeInfoes/" + id);
+
+		hubConnection = new HubConnectionBuilder()
+	 .WithUrl(NavigationManager.ToAbsoluteUri("/EmployeeHub"))
+	 .Build();
+
+		await hubConnection.StartAsync();
+	}
+
+	public bool IsConnected =>
+		hubConnection.State == HubConnectionState.Connected;
+
+	public async Task Delete()
+	{
+		await Http.DeleteAsync("api/EmployeeInfoes/" + id);
+		if (IsConnected) await SendMessage();
+		NavigationManager.NavigateTo("employeeList");
+	}
+
+	Task SendMessage() => hubConnection.SendAsync("SendMessage");
+
+	void Cancel()
+	{
+		NavigationManager.NavigateTo("employeeList");
+	}
+
+	public void Dispose()
+	{
+		_ = hubConnection.DisposeAsync();
+	}
+}
